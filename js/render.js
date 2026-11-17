@@ -55,7 +55,7 @@
     const camS = state.player.s;
     const segs = state.segments;
     const P = FD.Iso.project;
-    const startS = Math.floor((camS - 180) / 40) * 40;
+    const startS = Math.floor((camS - 520) / 40) * 40;
     const endS = camS + 1080;
     const step = 40;
 
@@ -628,7 +628,7 @@
 
     // Painter's algorithm list of visible roadside buildings & stops
     const drawList = [];
-    const baseBlock = Math.floor((camS - 120) / 170) * 170;
+    const baseBlock = Math.floor((camS - 480) / 170) * 170;
     for (let bs = baseBlock; bs < camS + 1020; bs += 170) {
       const nearStopL = state.stops.some(function (st) { return st.side === 'left' && Math.abs(st.s - bs) < 120; });
       const nearStopR = state.stops.some(function (st) { return st.side === 'right' && Math.abs(st.s - bs) < 120; });
@@ -638,7 +638,7 @@
 
     for (let i = 0; i < state.stops.length; i++) {
       const stop = state.stops[i];
-      if (stop.s < camS - 180 || stop.s > camS + 1080) continue;
+      if (stop.s < camS - 480 || stop.s > camS + 1080) continue;
       drawList.push({
         s: stop.s,
         fn: stop.kind === 'PICKUP' ? drawPickupZoneAndBuilding : drawDropoffHouseAndMat,
@@ -648,13 +648,13 @@
 
     for (let i = 0; i < state.yardProps.length; i++) {
       const yp = state.yardProps[i];
-      if (yp.s < camS - 160 || yp.s > camS + 1050) continue;
+      if (yp.s < camS - 480 || yp.s > camS + 1050) continue;
       drawList.push({ s: yp.s, fn: drawYardProp, args: [ctx, state, yp] });
     }
 
     for (let i = 0; i < state.hazards.length; i++) {
       const hz = state.hazards[i];
-      if (hz.s < camS - 160 || hz.s > camS + 1050) continue;
+      if (hz.s < camS - 480 || hz.s > camS + 1050) continue;
       drawList.push({ s: hz.s, fn: drawHazardEntity, args: [ctx, state, hz] });
     }
 
