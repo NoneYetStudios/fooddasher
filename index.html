@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#181214">
+  <meta name="description" content="Food Dasher — 1980s Paperboy-meets-modern-gig-economy isometric 2.5D arcade browser game. Hot Food. Cold Tips. Zero Benefits. An STF Arcade release.">
+  <link rel="canonical" href="https://fooddasher.stabthefinger.com/">
+  <title>Food Dasher — STF Arcade</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <header id="hud">
+    <a id="backBtn" class="btn-back" href="https://arcade.stabthefinger.com/">← STF Arcade</a>
+    <div id="stats">
+      <div class="stat"><span class="lbl">SHIFT</span><span class="val" id="hudShift">#1</span></div>
+      <div class="stat"><span class="lbl">RATING</span><span class="val rating" id="hudRating">★ 5.00</span></div>
+      <div class="stat"><span class="lbl">BANKROLL</span><span class="val money" id="hudBankroll">$0.00</span></div>
+      <div class="stat hide-xs"><span class="lbl">RIDE</span><span class="val" id="hudVehicle">SCOOTER</span></div>
+    </div>
+    <div id="toggles">
+      <button id="btnShopHud" class="chip" type="button" title="Garage &amp; Gear">SHOP</button>
+      <button id="btnSound" class="chip" type="button" title="Toggle audio (M)">SND: ON</button>
+      <button id="btnPause" class="chip" type="button" title="Pause (P / Esc)">❚❚</button>
+    </div>
+  </header>
+
+  <main id="stage">
+    <canvas id="game" width="1280" height="720"></canvas>
+
+    <!-- Non-overlapping mobile touch controls -->
+    <div id="touchControls" aria-hidden="true">
+      <div class="touch-left">
+        <div class="touch-row">
+          <button class="touch-btn lane" type="button" data-touch-hold="left" aria-label="Steer Left">◄</button>
+          <button class="touch-btn lane" type="button" data-touch-hold="right" aria-label="Steer Right">►</button>
+        </div>
+        <div class="touch-row">
+          <button class="touch-btn speed" type="button" data-touch-hold="brake" aria-label="Brake">BRAKE</button>
+          <button class="touch-btn speed boost" type="button" data-touch-hold="accel" aria-label="Boost">BOOST</button>
+        </div>
+      </div>
+      <div class="touch-right">
+        <button id="touchActionBtn" class="touch-action-btn" type="button">TOSS</button>
+      </div>
+    </div>
+
+    <div id="screens">
+
+      <!-- Title & Career Hub -->
+      <section class="screen active" id="screen-menu">
+        <div class="panel gig-phone">
+          <div class="phone-notch">
+            <span class="signal-pill">5G · GIG-NET</span>
+            <span class="badge-live">ONLINE</span>
+          </div>
+          <div class="brand-kicker">STF ARCADE · THERMAL BAG EDITION</div>
+          <h1 class="title">FOOD<br>DASHER</h1>
+          <p class="tagline">Hot Food. Cold Tips. Zero Benefits.</p>
+
+          <div class="career-strip">
+            <div class="career-cell"><span class="lbl">APP RATING</span><b id="menuRating">★ 5.00</b></div>
+            <div class="career-cell"><span class="lbl">NET BANKROLL</span><b id="menuBankroll">$0.00</b></div>
+            <div class="career-cell"><span class="lbl">SHIFT</span><b id="menuShift">#1</b></div>
+            <div class="career-cell"><span class="lbl">BEST RUN</span><b id="menuBest">$0</b></div>
+          </div>
+
+          <div class="vehicle-banner" id="menuVehicleBanner">
+            <span class="lbl">ACTIVE RIDE</span>
+            <b id="menuVehicleName">2004 Scooter</b>
+          </div>
+
+          <div class="menu-btns">
+            <button class="btn primary" id="btnStartShift" type="button">▶ START SHIFT</button>
+            <button class="btn accent" id="btnOpenShop" type="button">GARAGE &amp; UPGRADES</button>
+            <button class="btn" id="btnBoard" type="button">LEADERBOARD</button>
+            <button class="btn" id="btnHow" type="button">DISPATCH MANUAL</button>
+          </div>
+          <div class="menu-sub-actions">
+            <button class="btn small ghost" id="btnCashOut" type="button">CASH OUT &amp; SUBMIT RUN</button>
+            <button class="btn small ghost" id="btnResetCareer" type="button">RESET CAREER</button>
+          </div>
+          <p class="hint">Desktop: A/D or ◄/► Steer · W/S or ▲/▼ Speed · Space GRAB/TOSS · M Mute</p>
+        </div>
+      </section>
+
+      <!-- Phase 1: Interactive Dispatch & Route Planner -->
+      <section class="screen" id="screen-dispatch">
+        <div class="panel wide dispatch-panel">
+          <div class="dispatch-head">
+            <div>
+              <div class="brand-kicker">PHASE 1 · GIG DISPATCH</div>
+              <h2 id="dispatchTitle">SHIFT #1 — INCOMING OFFERS</h2>
+            </div>
+            <div class="dispatch-head-actions">
+              <button class="btn small" id="btnDispatchShop" type="button">GARAGE</button>
+              <button class="btn small" id="btnDispatchBack" type="button">BACK</button>
+            </div>
+          </div>
+
+          <div class="dispatch-grid">
+            <div class="dispatch-map-col">
+              <div class="map-frame">
+                <canvas id="dispatchMap" width="440" height="260" aria-label="Neighborhood dispatch mini-map"></canvas>
+              </div>
+              <p class="map-legend">🍔 = Pickup · 🏠 = Dropoff · Dashed Line = Active Route Order</p>
+            </div>
+            <div class="dispatch-offers-col">
+              <div class="section-lbl">TAP GIG OFFERS TO ADD / REMOVE FROM ROUTE</div>
+              <div class="offers-list" id="offersList"></div>
+            </div>
+          </div>
+
+          <div class="queue-section">
+            <div class="queue-header">
+              <div>
+                <span class="section-lbl">ROUTE QUEUE STRIP</span>
+                <span class="queue-hint" id="queueHint">Reorder with ▲/▼ or click 2 stops to swap (Pickup must precede Dropoff)</span>
+              </div>
+              <div class="queue-tools">
+                <button class="btn small accent" id="btnSmartSort" type="button">SMART SORT</button>
+                <button class="btn small primary" id="btnLaunchDash" type="button">▶ START DASH</button>
+              </div>
+            </div>
+            <p id="reorderStatus" role="status" class="visually-hidden"></p>
+            <div id="routeQueueError" class="route-error" role="status" aria-live="polite"></div>
+            <div class="route-queue-strip" id="routeQueueList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pause Overlay -->
+      <section class="screen" id="screen-pause">
+        <div class="panel">
+          <h2>SHIFT PAUSED</h2>
+          <p class="tagline">Customer rating meter holds steady while clocked out.</p>
+          <div class="menu-btns">
+            <button class="btn primary" id="btnResume" type="button">▶ RESUME DASH</button>
+            <button class="btn" id="btnPauseHow" type="button">CONTROLS &amp; HAZARDS</button>
+            <button class="btn" id="btnQuitShift" type="button">END SHIFT TO MENU</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- End-of-Shift Parody Receipt -->
+      <section class="screen" id="screen-receipt">
+        <div class="panel receipt-panel">
+          <div class="brand-kicker" id="receiptKicker">SHIFT COMPLETE</div>
+          <h2 id="receiptTitle">EARNINGS RECEIPT</h2>
+          <div class="thermal-paper" id="receiptBody"></div>
+          <div class="receipt-career-row">
+            <span>BANKROLL: <b id="rcBankroll">$0.00</b></span>
+            <span>NEW RATING: <b id="rcRating">★ 5.00</b></span>
+          </div>
+          <div class="menu-btns row">
+            <button class="btn primary" id="btnNextShift" type="button">▶ NEXT SHIFT</button>
+            <button class="btn accent" id="btnReceiptShop" type="button">GARAGE &amp; GEAR</button>
+            <button class="btn" id="btnReceiptCashOut" type="button">CASH OUT &amp; POST</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Game Over / ACCOUNT DEACTIVATED (or Voluntary Cash-Out Submission) -->
+      <section class="screen" id="screen-over">
+        <div class="panel wide over-panel">
+          <div class="deactivated-stamp" id="overStamp">ACCOUNT DEACTIVATED</div>
+          <h2 id="overHeading">CONTRACT TERMINATED</h2>
+          <p class="tagline" id="overReason">App Rating dropped below ★ 2.00. Thermal bag privileges revoked.</p>
+
+          <div class="results-grid">
+            <div class="res-box"><span class="lbl">NET EARNINGS</span><b id="goScore">$0</b></div>
+            <div class="res-box"><span class="lbl">DELIVERIES</span><b id="goDeliveries">0</b></div>
+            <div class="res-box"><span class="lbl">SHIFTS</span><b id="goShifts">0</b></div>
+            <div class="res-box"><span class="lbl">PEAK RATING</span><b id="goPeakRating">★ 5.00</b></div>
+          </div>
+
+          <form id="submitForm" autocomplete="off" novalidate>
+            <label for="nameInput" class="section-lbl">POST TO GLOBAL LEADERBOARD</label>
+            <span id="nameHint" class="field-hint">1–12 characters: A-Z, 0-9, space, _ . - ! ?</span>
+            <div class="submit-row">
+              <input id="nameInput" type="text" maxlength="12" required pattern="[A-Za-z0-9 _.\-!?]{1,12}" placeholder="DASHER_1" spellcheck="false" autocapitalize="characters" aria-describedby="nameHint">
+              <button class="btn primary" id="btnSubmit" type="submit">SUBMIT</button>
+            </div>
+            <div id="submitMsg" class="submit-msg" role="status" aria-live="polite"></div>
+          </form>
+
+          <div class="menu-btns row">
+            <button class="btn primary" id="btnPlayAgain" type="button">▶ NEW CAREER</button>
+            <button class="btn" id="btnOverBoard" type="button">FULL LEADERBOARD</button>
+            <button class="btn" id="btnOverMenu" type="button">MENU</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Leaderboard Screen -->
+      <section class="screen" id="screen-board">
+        <div class="panel wide board-panel">
+          <div class="board-top">
+            <h2 id="boardTitle">TOP 25 FOOD DASHERS</h2>
+            <span id="boardModeNotice" class="board-mode-notice">LOCAL MODE — NO SERVER</span>
+          </div>
+          <div class="board-filters">
+            <div class="seg-group" id="boardViewTabs">
+              <button class="seg-btn active" type="button" data-board-view="overall">OVERALL</button>
+              <button class="seg-btn" type="button" data-board-view="vehicle">BY VEHICLE</button>
+            </div>
+            <div class="chip-row hidden" id="boardFilterRow"></div>
+          </div>
+
+          <div tabindex="0" role="region" aria-labelledby="boardTitle" class="table-wrapper">
+            <table id="boardTable">
+              <thead id="boardHead">
+                <tr><th>#</th><th>DASHER</th><th>RIDE</th><th>NET ($)</th><th>DROPS</th><th>SHIFTS</th><th>PEAK ★</th></tr>
+              </thead>
+              <tbody id="boardBody"></tbody>
+            </table>
+            <div id="boardMsg" class="board-msg">Loading…</div>
+          </div>
+
+          <div class="menu-btns row">
+            <button class="btn primary" id="btnBoardRefresh" type="button">REFRESH</button>
+            <button class="btn" id="btnBoardBack" type="button">BACK</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Native Modal Dialog: Garage & Upgrades Shop -->
+<dialog id="shopDialog" aria-labelledby="shopTitle" closedby="any">
+  <div class="dialog-head">
+    <div>
+      <div class="brand-kicker">GIG FLEET &amp; GEAR</div>
+      <h2 id="shopTitle">GARAGE &amp; UPGRADES</h2>
+    </div>
+    <div class="shop-balance">BANKROLL: <b id="shopBankroll">$0.00</b></div>
+  </div>
+  <div id="shopFeedback" class="route-error" role="status" aria-live="polite"></div>
+  <div class="shop-section">
+    <h3>VEHICLES</h3>
+    <div class="shop-grid" id="shopVehicles"></div>
+  </div>
+  <div class="shop-section">
+    <h3>THERMAL &amp; TOSS GEAR</h3>
+    <div class="shop-grid" id="shopUpgrades"></div>
+  </div>
+  <form method="dialog" class="dialog-foot">
+    <button class="btn primary" value="close" autofocus>DONE</button>
+  </form>
+</dialog>
+
+<!-- Native Modal Dialog: Dispatch Manual / Controls -->
+<dialog id="howDialog" aria-labelledby="howTitle" closedby="any">
+  <div class="dialog-head">
+    <div>
+      <div class="brand-kicker">INDEPENDENT CONTRACTOR HANDBOOK</div>
+      <h2 id="howTitle">HOW TO PLAY FOOD DASHER</h2>
+    </div>
+  </div>
+  <div class="how-cols">
+    <div>
+      <h3>1. Phase 1 — Dispatch Planner</h3>
+      <ul>
+        <li>Watch out for <b>$2.25 NO TIP</b> bait orders with 12 items and aggressive geese.</li>
+        <li>Click offers to add/remove them, reorder <code>PICKUP</code> / <code>DROPOFF</code> stops, or use <b>SMART SORT</b>.</li>
+      </ul>
+      <h3>2. Phase 2 — Isometric Dash</h3>
+      <ul>
+        <li>Steer across lanes with <code>A/D</code> or <code>◄/►</code>, control speed with <code>W/S</code> or <code>▲/▼</code>.</li>
+        <li>Pull into the glowing restaurant curb lane and hit <code>Space</code> / <b>GRAB</b>. Missing triggers an emergency U-turn reroute; missing twice cancels the order (<code>★ 1.0</code>).</li>
+        <li>Hit <code>Space</code> / <b>TOSS</b> near houses to land bags on the Welcome Mat for <b>+$2.00</b> bullseye tips!</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Food Archetypes &amp; Hazards</h3>
+      <ul>
+        <li>🌯 <b>Foil Burrito:</b> Sturdy foil, forgiving handling.</li>
+        <li>🍜 <b>Hot Pho Soup:</b> Spills violently over open potholes!</li>
+        <li>🍨 <b>Artisanal Gelato:</b> Melts fast — keep carry distance short.</li>
+        <li>🍕 <b>Giant 36" Pizza:</b> Wide toss arc — Precision Porch Cannon helps!</li>
+        <li><b>STF Cameos:</b> Watch for cul-de-sac <b>Geese</b>, runaway <b>Motorized Recliners</b>, and late-shift <b>Kaiju Stomps</b>.</li>
+      </ul>
+    </div>
+  </div>
+  <form method="dialog" class="dialog-foot">
+    <button class="btn primary" value="close" autofocus>GOT IT</button>
+  </form>
+</dialog>
+
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/iso.js"></script>
+<script src="js/dispatch.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/render.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
