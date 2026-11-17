@@ -5,6 +5,7 @@
 
   const NAME_KEY = 'fd_name_v1';
   const LOCAL_SCORES_KEY = 'fd_local_scores_v1';
+  const TOUCH_LAYOUT_KEY = 'fd_touch_layout';
   const NAME_REGEX = /^[A-Za-z0-9 _.\-!?]+$/;
 
   const $ = function (id) {
@@ -26,6 +27,27 @@
 
   function lsGet(k) { try { return typeof localStorage !== 'undefined' ? localStorage.getItem(k) : null; } catch (e) { return null; } }
   function lsSet(k, v) { try { if (typeof localStorage !== 'undefined') localStorage.setItem(k, v); } catch (e) {} }
+
+  function getTouchLayout() {
+    return lsGet(TOUCH_LAYOUT_KEY) === 'left' ? 'left' : 'split';
+  }
+
+  function applyTouchLayout(layout) {
+    const mode = layout === 'left' ? 'left' : 'split';
+    lsSet(TOUCH_LAYOUT_KEY, mode);
+    const tc = $('touchControls');
+    if (tc) {
+      tc.classList.toggle('layout-split', mode === 'split');
+      tc.classList.toggle('layout-left', mode === 'left');
+    }
+    if (typeof document !== 'undefined' && document.querySelectorAll) {
+      document.querySelectorAll('[data-touch-layout]').forEach(function (btn) {
+        const active = btn.getAttribute('data-touch-layout') === mode;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+  }
 
   function vehicleLabel(id) {
     const v = FD.VEHICLES[id];
@@ -1018,6 +1040,16 @@
     }
     if ($('btnResume')) $('btnResume').addEventListener('click', function () { FD.Game.resume(); });
     if ($('btnQuitShift')) $('btnQuitShift').addEventListener('click', function () { FD.Game.quitToMenu(); });
+
+    if (typeof document !== 'undefined' && document.querySelectorAll) {
+      document.querySelectorAll('[data-touch-layout]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          FD.Audio.sfx.click();
+          applyTouchLayout(btn.getAttribute('data-touch-layout'));
+        });
+      });
+    }
+    applyTouchLayout(getTouchLayout());
 
     if (typeof window !== 'undefined') {
       window.addEventListener('keydown', function (e) {

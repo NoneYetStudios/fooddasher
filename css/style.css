@@ -163,23 +163,61 @@ p, li { text-wrap: pretty; }
   inset: 0;
   pointer-events: none;
   display: none;
-  justify-content: space-between;
-  align-items: flex-end;
   padding: 12px max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
   z-index: 15;
 }
-body.playing #touchControls { display: flex; }
+body.playing #touchControls { display: grid; }
 @media (hover: hover) and (pointer: fine) {
   body.playing #touchControls { display: none; }
 }
 
-.touch-left, .touch-right {
+.touch-steer, .touch-speed, .touch-action {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   pointer-events: auto;
 }
-.touch-row { display: flex; gap: 8px; }
+
+#touchControls.layout-split {
+  grid-template-columns: auto 1fr auto auto;
+  grid-template-rows: 1fr;
+  align-items: end;
+  column-gap: 10px;
+}
+#touchControls.layout-split .touch-steer { grid-column: 1; grid-row: 1; justify-self: start; }
+#touchControls.layout-split .touch-speed { grid-column: 3; grid-row: 1; flex-direction: column; justify-self: end; }
+#touchControls.layout-split .touch-action { grid-column: 4; grid-row: 1; justify-self: end; }
+#touchControls.layout-split .touch-btn.lane { min-width: 70px; min-height: 66px; font-size: 18px; }
+
+#touchControls.layout-left {
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: 1fr auto auto;
+  row-gap: 10px;
+  align-items: end;
+}
+#touchControls.layout-left .touch-steer { grid-column: 1; grid-row: 2; justify-self: start; }
+#touchControls.layout-left .touch-speed { grid-column: 1; grid-row: 3; justify-self: start; }
+#touchControls.layout-left .touch-action { grid-column: 3; grid-row: 2 / span 2; justify-self: end; align-self: end; }
+#touchControls.layout-left .touch-btn { min-width: 66px; min-height: 54px; }
+
+.touch-layout-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin: 10px 0 12px;
+}
+.touch-layout-setting .lbl { font-size: 11px; font-weight: bold; color: var(--dim); letter-spacing: 0.5px; }
+.seg-group { display: flex; gap: 6px; }
+.seg-btn.active {
+  background: var(--hivis);
+  color: #181214;
+  border-color: #fffbeb;
+}
 
 .touch-btn {
   min-width: 60px;
@@ -341,6 +379,25 @@ body.playing #touchControls { display: flex; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .hint { margin: 12px 0 0; font-size: 11px; color: var(--dim); }
+
+@media (hover: none) and (pointer: coarse), (max-width: 820px) {
+  .desktop-only { display: none; }
+}
+
+@media (max-width: 520px) {
+  #screens { padding: 8px; }
+  .panel { padding: 14px; max-height: calc(100dvh - 24px); }
+  .title { font-size: clamp(2rem, 10vw, 2.7rem); }
+  .tagline { margin: 4px 0 10px; font-size: 12px; }
+  .career-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-bottom: 10px; }
+  .career-cell { padding: 6px 8px; }
+  .career-cell b { font-size: 14px; }
+  .vehicle-banner { padding: 7px 10px; margin-bottom: 10px; font-size: 12px; }
+  .menu-btns { gap: 7px; }
+  .btn { padding: 9px 12px; font-size: 13px; }
+  .menu-sub-actions { margin-top: 8px; gap: 6px; }
+  .hint { margin-top: 8px; font-size: 10px; }
+}
 
 /* ---------- Phase 1 Dispatch & Route Planner ---------- */
 .dispatch-panel {

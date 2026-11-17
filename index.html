@@ -32,18 +32,16 @@
     <canvas id="game" width="1280" height="720"></canvas>
 
     <!-- Non-overlapping mobile touch controls -->
-    <div id="touchControls" aria-hidden="true">
-      <div class="touch-left">
-        <div class="touch-row">
-          <button class="touch-btn lane" type="button" data-touch-hold="left" aria-label="Steer Left">◄</button>
-          <button class="touch-btn lane" type="button" data-touch-hold="right" aria-label="Steer Right">►</button>
-        </div>
-        <div class="touch-row">
-          <button class="touch-btn speed" type="button" data-touch-hold="brake" aria-label="Brake">BRAKE</button>
-          <button class="touch-btn speed boost" type="button" data-touch-hold="accel" aria-label="Boost">BOOST</button>
-        </div>
+    <div id="touchControls" class="layout-split" aria-hidden="true">
+      <div class="touch-steer">
+        <button class="touch-btn lane" type="button" data-touch-hold="left" aria-label="Steer Left">◄</button>
+        <button class="touch-btn lane" type="button" data-touch-hold="right" aria-label="Steer Right">►</button>
       </div>
-      <div class="touch-right">
+      <div class="touch-speed">
+        <button class="touch-btn speed" type="button" data-touch-hold="brake" aria-label="Brake">BRAKE</button>
+        <button class="touch-btn speed boost" type="button" data-touch-hold="accel" aria-label="Boost">BOOST</button>
+      </div>
+      <div class="touch-action">
         <button id="touchActionBtn" class="touch-action-btn" type="button">TOSS</button>
       </div>
     </div>
@@ -121,7 +119,7 @@
                 <span class="queue-hint" id="queueHint">Reorder with ▲/▼ or click 2 stops to swap (Pickup must precede Dropoff)</span>
               </div>
               <div class="queue-tools">
-                <button class="btn small primary" id="btnLaunchDash" type="button">▶ START DASH (SPACE)</button>
+                <button class="btn small primary" id="btnLaunchDash" type="button">▶ START DASH<span class="desktop-only"> (SPACE)</span></button>
               </div>
             </div>
             <p id="reorderStatus" role="status" class="visually-hidden"></p>
@@ -136,6 +134,13 @@
         <div class="panel">
           <h2>SHIFT PAUSED</h2>
           <p class="tagline">Customer rating meter holds steady while clocked out.</p>
+          <div class="touch-layout-setting">
+            <span class="lbl">MOBILE CONTROLS:</span>
+            <div class="seg-group" role="group" aria-label="Mobile Control Layout">
+              <button class="btn small seg-btn" type="button" data-touch-layout="split">SPLIT</button>
+              <button class="btn small seg-btn" type="button" data-touch-layout="left">LEFT PAD</button>
+            </div>
+          </div>
           <div class="menu-btns">
             <button class="btn primary" id="btnResume" type="button">▶ RESUME DASH</button>
             <button class="btn" id="btnPauseHow" type="button">CONTROLS &amp; HAZARDS</button>
@@ -284,6 +289,13 @@
         <li>🍕 <b>Giant 36" Pizza:</b> Wide toss arc — Precision Porch Cannon helps!</li>
         <li><b>STF Cameos:</b> Watch for cul-de-sac <b>Geese</b>, runaway <b>Motorized Recliners</b>, and late-shift <b>Kaiju Stomps</b>.</li>
       </ul>
+    </div>
+  </div>
+  <div class="touch-layout-setting">
+    <span class="lbl">MOBILE CONTROLS:</span>
+    <div class="seg-group" role="group" aria-label="Mobile Control Layout">
+      <button class="btn small seg-btn" type="button" data-touch-layout="split">SPLIT</button>
+      <button class="btn small seg-btn" type="button" data-touch-layout="left">LEFT PAD</button>
     </div>
   </div>
   <form method="dialog" class="dialog-foot">
