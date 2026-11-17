@@ -203,21 +203,19 @@
 
   /* ---------- Phase 1 Dispatch & Route Queue (modern-web-guidance: dynamic-sort) ---------- */
   function reorderDomNodes(container, orderedNodes) {
-    const move = (typeof Element !== 'undefined' && Object.hasOwn(Element.prototype, 'moveBefore'))
-      ? function (node) { container.moveBefore(node, null); }
-      : function (node) { container.append(node); };
-    for (let i = 0; i < orderedNodes.length; i++) move(orderedNodes[i]);
+    const hasMoveBefore = typeof Element !== 'undefined' && Object.hasOwn(Element.prototype, 'moveBefore');
+    for (let i = 0; i < orderedNodes.length; i++) {
+      const node = orderedNodes[i];
+      if (hasMoveBefore && node.parentNode === container) {
+        container.moveBefore(node, null);
+      } else {
+        container.append(node);
+      }
+    }
   }
 
   function applyQueueReorderTransition(container, orderedNodes, announcement) {
-    const update = function () { reorderDomNodes(container, orderedNodes); };
-    if (typeof container.startViewTransition === 'function') {
-      container.startViewTransition(update);
-    } else if (typeof document !== 'undefined' && typeof document.startViewTransition === 'function') {
-      document.startViewTransition(update);
-    } else {
-      update();
-    }
+    reorderDomNodes(container, orderedNodes);
     const status = $('reorderStatus');
     if (status && announcement) status.textContent = announcement;
   }
@@ -283,10 +281,12 @@
         FD.Audio.sfx.click();
         swapSourceIdx = idx;
         syncQueueSelectionHighlight();
+        redrawDispatchMap();
       } else if (swapSourceIdx === idx) {
         FD.Audio.sfx.click();
         swapSourceIdx = -1;
         syncQueueSelectionHighlight();
+        redrawDispatchMap();
       } else {
         const res = FD.Game.swapQueueStops(swapSourceIdx, idx);
         swapSourceIdx = -1;
@@ -295,6 +295,14 @@
     });
 
     return node;
+  }
+
+  function redrawDispatchMap() {
+    const d = FD.Game.getDispatch();
+    const sel = swapSourceIdx >= 0 && d.queue[swapSourceIdx]
+      ? (d.queue[swapSourceIdx].orderId + '_' + d.queue[swapSourceIdx].kind)
+      : null;
+    FD.Dispatch.drawDispatchMap($('dispatchMap'), d.offers, d.queue, sel);
   }
 
   function syncQueueSelectionHighlight() {
@@ -320,7 +328,7 @@
     FD.Audio.sfx.click();
     if (errEl) errEl.textContent = '';
     syncRouteQueueDom(announceText);
-    FD.Dispatch.drawDispatchMap($('dispatchMap'), FD.Game.getDispatch().offers, FD.Game.getDispatch().queue);
+    redrawDispatchMap();
   }
 
   function syncRouteQueueDom(announceText) {
@@ -343,10 +351,14 @@
       wantedUids[stop.uid] = true;
       let node = existingByUid[stop.uid];
       if (!node) node = createStopNode(stop);
+      node.style.borderTopColor = stop.color;
       const badge = node.querySelector('.stop-badge');
       if (badge) {
+        badge.style.color = stop.color;
         badge.textContent = '#' + (i + 1) + ' ' + stop.kind + ' ' + stop.orderId + ' (' + stop.side.toUpperCase() + ')';
       }
+      const nameEl = node.querySelector('.stop-name');
+      if (nameEl) nameEl.textContent = stop.label;
       node.classList.toggle('swap-selected', i === swapSourceIdx);
       orderedNodes.push(node);
     }
@@ -411,7 +423,7 @@
     }
 
     syncRouteQueueDom('Updated dispatch route queue with ' + d.queue.length + ' waypoints');
-    FD.Dispatch.drawDispatchMap($('dispatchMap'), d.offers, d.queue);
+    redrawDispatchMap();
   }
 
   /* ---------- Receipt & Account Deactivated Screens ---------- */
@@ -441,6 +453,12 @@
       '<div class="rc-row deduct"><span>App Algorithm Fee (8%)</span><span class="rc-amt">-' + FD.Util.fmtMoney(receipt.algorithmFee) + '</span></div>' +
       '<div class="rc-row deduct"><span>Thermal Bag Depreciation</span><span class="rc-amt">-' + FD.Util.fmtMoney(receipt.bagDepreciation) + '</span></div>' +
       '<div class="rc-row deduct"><span>Convenience Fee for Getting Paid</span><span class="rc-amt">-' + FD.Util.fmtMoney(receipt.convenienceFee) + '</span></div>' +
+      (receipt.ruinedOrderFee > 0
+        ? '<div class="rc-row deduct"><span>Stolen / Ruined Order Fee (' + receipt.ruinedOrderCount + ' × $3.50)</span><span class="rc-amt">-' + FD.Util.fmtMoney(receipt.ruinedOrderFee) + '</span></div>'
+        : '') +
+      (receipt.damageDeductible > 0
+        ? '<div class="rc-row deduct"><span>Insurance Deductible (' + ((receipt.collisionCount || 0) + (receipt.potholeHits || 0)) + ' hits)</span><span class="rc-amt">-' + FD.Util.fmtMoney(receipt.damageDeductible) + '</span></div>'
+        : '') +
       '<div class="rc-row total"><span>NET SHIFT PAYOUT</span><span class="rc-amt">' + FD.Util.fmtMoney(receipt.netShiftEarnings) + '</span></div>';
   }
 
@@ -870,14 +888,45 @@
         showScreen('menu');
       });
     }
-    if ($('btnSmartSort')) {
-      $('btnSmartSort').addEventListener('click', function () {
-        FD.Audio.sfx.confirm();
-        FD.Game.smartSortDispatch();
-        swapSourceIdx = -1;
-        if ($('routeQueueError')) $('routeQueueError').textContent = '';
-        syncRouteQueueDom('Smart Sorted route queue for optimal freshness');
-        FD.Dispatch.drawDispatchMap($('dispatchMap'), FD.Game.getDispatch().offers, FD.Game.getDispatch().queue);
+    if ($('dispatchMap')) {
+      $('dispatchMap').addEventListener('click', function (e) {
+        const d = FD.Game.getDispatch();
+        const pin = FD.Dispatch.hitTestMapPin(d.offers, $('dispatchMap'), e.clientX, e.clientY);
+        if (!pin) return;
+
+        const qIdx = d.queue.findIndex(function (s) {
+          return s.orderId === pin.orderId && s.kind === pin.kind;
+        });
+
+        if (qIdx === -1) {
+          swapSourceIdx = -1;
+          const res = FD.Game.toggleOffer(pin.orderId);
+          if (!res.ok) {
+            FD.Audio.sfx.error();
+            if ($('routeQueueError')) $('routeQueueError').textContent = res.reason || 'Select at least 1 order.';
+            return;
+          }
+          FD.Audio.sfx.click();
+          renderDispatchScreen();
+          return;
+        }
+
+        if (swapSourceIdx === -1) {
+          FD.Audio.sfx.click();
+          swapSourceIdx = qIdx;
+          if ($('routeQueueError')) $('routeQueueError').textContent = '';
+          syncQueueSelectionHighlight();
+          redrawDispatchMap();
+        } else if (swapSourceIdx === qIdx) {
+          FD.Audio.sfx.click();
+          swapSourceIdx = -1;
+          syncQueueSelectionHighlight();
+          redrawDispatchMap();
+        } else {
+          const res = FD.Game.swapQueueStops(swapSourceIdx, qIdx);
+          swapSourceIdx = -1;
+          handleQueueMutationResult(res, 'Swapped stops in route queue');
+        }
       });
     }
     if ($('btnLaunchDash')) {
@@ -982,6 +1031,18 @@
         } else if (e.code === 'KeyP' || e.code === 'Escape') {
           if (FD.Game.getMode() === 'play') FD.Game.pause();
           else if (FD.Game.getMode() === 'pause') FD.Game.resume();
+        } else if (e.code === 'Space' && !e.repeat) {
+          const openDlg = typeof document !== 'undefined' && document.querySelector && document.querySelector('dialog[open]');
+          if (openDlg) return;
+          if (currentScreen === 'menu') {
+            e.preventDefault();
+            FD.Audio.sfx.confirm();
+            FD.Game.prepareDispatch();
+          } else if (currentScreen === 'dispatch') {
+            e.preventDefault();
+            FD.Audio.sfx.confirm();
+            FD.Game.startShift();
+          }
         }
       });
     }

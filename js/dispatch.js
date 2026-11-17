@@ -336,8 +336,39 @@
     return { pins: pins, byKey: byKey };
   }
 
+  /** Hit-test a pointer/click coordinate against Dispatch mini-map pins (accounting for CSS object-fit: contain scaling). */
+  function hitTestMapPin(offers, canvas, clientX, clientY) {
+    if (!canvas || !offers || !offers.length) return null;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    const w = canvas.width;
+    const h = canvas.height;
+    const scale = Math.min(rect.width / w, rect.height / h);
+    const drawW = w * scale;
+    const drawH = h * scale;
+    const offsetX = rect.left + (rect.width - drawW) / 2;
+    const offsetY = rect.top + (rect.height - drawH) / 2;
+    const mx = (clientX - offsetX) / scale;
+    const my = (clientY - offsetY) / scale;
+
+    const resolved = resolveMapPins(offers, w, h);
+    let bestPin = null;
+    let bestDist = Infinity;
+    for (let i = 0; i < resolved.pins.length; i++) {
+      const pin = resolved.pins[i];
+      if (Math.abs(mx - pin.x) <= 27 && Math.abs(my - pin.y) <= 15) {
+        const d = Math.hypot(mx - pin.x, my - pin.y);
+        if (d < bestDist) {
+          bestDist = d;
+          bestPin = pin;
+        }
+      }
+    }
+    return bestPin;
+  }
+
   /** Draw stylized Phase 1 Neighborhood Dispatch Mini-Map onto a canvas. */
-  function drawDispatchMap(canvas, offers, queue) {
+  function drawDispatchMap(canvas, offers, queue, selectedKey) {
     if (!canvas || !canvas.getContext) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -429,9 +460,20 @@
       ctx.restore();
     }
 
-    // Queue step badges
+    // Queue step badges & optional selected swap ring
     for (let i = 1; i < pts.length; i++) {
       const p = pts[i];
+      if (selectedKey && selectedKey === p.orderId + '_' + p.kind) {
+        ctx.save();
+        ctx.strokeStyle = '#ffbe0b';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#ffbe0b';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.roundRect(p.x - 27, p.y - 15, 54, 30, 12);
+        ctx.stroke();
+        ctx.restore();
+      }
       const bx = p.x + 23;
       const by = p.y - 11;
       ctx.fillStyle = '#ffbe0b';
@@ -459,6 +501,7 @@
     smartSortQueue: smartSortQueue,
     buildCorridorFromQueue: buildCorridorFromQueue,
     resolveMapPins: resolveMapPins,
+    hitTestMapPin: hitTestMapPin,
     drawDispatchMap: drawDispatchMap
   };
 })(typeof window !== 'undefined' ? window : globalThis);

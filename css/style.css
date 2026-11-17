@@ -344,6 +344,9 @@ body.playing #touchControls { display: flex; }
 
 /* ---------- Phase 1 Dispatch & Route Planner ---------- */
 .dispatch-panel {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   max-height: calc(100dvh - 64px);
@@ -367,26 +370,43 @@ body.playing #touchControls { display: flex; }
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(250px, 400px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: 12px;
   align-items: stretch;
+  overflow: hidden;
+}
+.dispatch-map-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 .dispatch-offers-col {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow-y: auto;
 }
 @media (max-width: 820px) {
   .dispatch-panel { max-height: calc(100dvh - 58px); padding: 10px 12px; }
-  .dispatch-grid { grid-template-columns: 1fr; overflow-y: auto; }
+  .dispatch-grid { grid-template-columns: 1fr; grid-template-rows: auto; overflow-y: auto; }
 }
 
 .map-frame {
+  flex: 0 1 auto;
+  min-height: 0;
   border: 2px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
   background: #14171d;
 }
-#dispatchMap { width: 100%; height: auto; display: block; }
+#dispatchMap {
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+  object-fit: contain;
+  display: block;
+  cursor: pointer;
+}
 .map-legend { font-size: 11px; color: var(--dim); margin: 5px 0 0; }
 
 .section-lbl { font-size: 11px; font-weight: bold; letter-spacing: 1px; color: var(--hivis); }
@@ -400,7 +420,6 @@ body.playing #touchControls { display: flex; }
   flex-direction: column;
   gap: 7px;
   margin-top: 6px;
-  max-height: clamp(150px, 34dvh, 250px);
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -435,9 +454,13 @@ body.playing #touchControls { display: flex; }
 .tag-pill.warn { color: #fca5a5; border-color: #991b1b; }
 
 .queue-section {
+  position: relative;
+  z-index: 5;
   flex: 0 0 auto;
   margin-top: 8px;
   padding-top: 8px;
+  padding-bottom: 2px;
+  background: var(--panel);
   border-top: 2px solid var(--line);
 }
 .queue-header {
@@ -459,14 +482,24 @@ body.playing #touchControls { display: flex; }
 }
 
 .route-queue-strip {
+  position: relative;
+  z-index: 6;
   display: flex;
-  gap: 8px;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+  min-height: 96px;
   overflow-x: auto;
-  padding: 6px 2px;
+  overflow-y: visible;
+  padding: 6px 2px 6px;
 }
 .queue-stop {
-  flex: 0 0 auto;
-  min-width: 158px;
+  position: relative;
+  z-index: 1;
+  flex: 0 0 190px;
+  min-height: 80px;
   background: #1a1418;
   border: 2px solid var(--line);
   border-top-width: 5px;
@@ -475,11 +508,10 @@ body.playing #touchControls { display: flex; }
   display: flex;
   flex-direction: column;
   gap: 5px;
-  view-transition-name: match-element;
 }
 .queue-stop.swap-selected { box-shadow: 0 0 0 2px var(--hivis); }
 .stop-badge { font-size: 11px; font-weight: bold; }
-.stop-name { font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 148px; }
+.stop-name { font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
 .stop-controls { display: flex; gap: 5px; }
 .stop-controls button {
   flex: 1 1 auto;

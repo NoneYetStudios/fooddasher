@@ -208,6 +208,9 @@
       shakeAmp: 0,
       bannerText: '',
       bannerTimer: 0,
+      collisionCount: 0,
+      potholeHits: 0,
+      postFinishS: null,
       finished: false,
       player: {
         s: 0,
@@ -607,6 +610,7 @@
         spawnCallout(state, hazard.s, hazard.laneX, 26, 'HOVERED OVER!', '#a3e635');
         return { ignored: true, reason: 'hover_moped' };
       }
+      state.potholeHits = (state.potholeHits || 0) + 1;
       state.player.speed = Math.max(veh.minSpeed * 0.72, state.player.speed * 0.65);
       state.player.bumpTimer = 0.35;
       state.shakeTimer = 0.25;
@@ -627,6 +631,7 @@
 
     if (state.player.invulnTimer > 0) return { ignored: true, reason: 'invuln' };
 
+    state.collisionCount = (state.collisionCount || 0) + 1;
     state.player.invulnTimer = 1.0;
     state.player.bumpTimer = 0.45;
     state.player.speed = Math.max(veh.minSpeed * 0.65, state.player.speed * 0.55);
@@ -772,10 +777,15 @@
 
     // Check end of corridor (and ensure any airborne projectiles settle)
     const allStopsDone = st.stops.every(function (s) { return s.completed || s.missed; });
-    if ((player.s >= st.totalLength || allStopsDone) && st.projectiles.length === 0) {
-      if (player.s >= st.totalLength - 40 || allStopsDone) {
+    if (allStopsDone && st.projectiles.length === 0) {
+      if (st.postFinishS == null) {
+        st.postFinishS = player.s + 240;
+      }
+      if (player.s >= st.postFinishS) {
         st.finished = true;
       }
+    } else if (player.s >= st.totalLength && st.projectiles.length === 0) {
+      st.finished = true;
     }
 
     return st;
@@ -789,6 +799,7 @@
     let tipsEarned = 0;
     let bullseyeBonuses = 0;
     let deliveredCount = 0;
+    let ruinedOrderCount = 0;
     let ratingSum = 0;
     let ratingCount = 0;
     const lineItems = [];
@@ -796,6 +807,7 @@
     for (let i = 0; i < orderKeys.length; i++) {
       const ord = st.orders[orderKeys[i]];
       if (ord.status === 'delivered') deliveredCount++;
+      if (ord.status === 'ruined' || ord.status === 'canceled') ruinedOrderCount++;
       grossBasePay += ord.baseEarned;
       tipsEarned += ord.tipEarned;
       bullseyeBonuses += ord.bullseyeBonus;
@@ -832,13 +844,20 @@
       convenienceFee = FD.Util.round2(maxFees - algorithmFee - bagDepreciation);
     }
 
-    const totalFees = FD.Util.round2(algorithmFee + bagDepreciation + convenienceFee);
+    const ruinedOrderFee = FD.Util.round2(ruinedOrderCount * 3.50);
+    const collisionCount = st.collisionCount || 0;
+    const potholeHits = st.potholeHits || 0;
+    const damageDeductible = FD.Util.round2(collisionCount * 1.25 + potholeHits * 0.50);
+    const totalFees = FD.Util.round2(algorithmFee + bagDepreciation + convenienceFee + ruinedOrderFee + damageDeductible);
     const netShiftEarnings = Math.max(0, FD.Util.round2(grossTotal - totalFees));
     const shiftAvgRating = ratingCount > 0 ? FD.Util.round2(ratingSum / ratingCount) : career.rating;
 
     return {
       shiftNum: st.shiftNum,
       deliveredCount: deliveredCount,
+      ruinedOrderCount: ruinedOrderCount,
+      collisionCount: collisionCount,
+      potholeHits: potholeHits,
       totalOrders: orderKeys.length,
       grossBasePay: grossBasePay,
       tipsEarned: tipsEarned,
@@ -847,6 +866,8 @@
       algorithmFee: algorithmFee,
       bagDepreciation: bagDepreciation,
       convenienceFee: convenienceFee,
+      ruinedOrderFee: ruinedOrderFee,
+      damageDeductible: damageDeductible,
       totalFees: totalFees,
       netShiftEarnings: netShiftEarnings,
       shiftAvgRating: shiftAvgRating,

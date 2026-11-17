@@ -248,11 +248,34 @@ async function runGameLogicTests() {
   assert.equal(ruinRes.outcome, 'ruined');
   assert.equal(stPlay.orders.B.ratingAwarded, 1.0);
 
+  // Post-delivery coast buffer: allStopsDone sets postFinishS = player.s + 240 before finishing
+  assert.equal(stPlay.finished, false, 'Run does not finish before coast buffer');
+  const preCoastS = stPlay.player.s;
+  FD.Game.stepRun(stPlay, 0.05, { steer: 0, throttle: 0, action: false });
+  assert.ok(stPlay.postFinishS > preCoastS + 230, 'postFinishS target recorded ahead');
+  assert.equal(stPlay.finished, false, 'Run stays active during coast buffer');
+  stPlay.player.s = stPlay.postFinishS;
+  FD.Game.stepRun(stPlay, 0.05, { steer: 0, throttle: 0, action: false });
+  assert.equal(stPlay.finished, true, 'Run finishes after reaching postFinishS');
+
   const receipt = FD.Game.buildShiftReceipt(stPlay);
   assert.equal(receipt.grossBasePay, 5.00);
   assert.equal(receipt.bullseyeBonuses, 2.00);
+  assert.equal(receipt.ruinedOrderCount, 1, 'Counts 1 ruined/canceled order');
+  assert.equal(receipt.ruinedOrderFee, 3.50, 'Charges $3.50 Stolen / Ruined Order Fee');
+  assert.equal(receipt.potholeHits, 2, 'Tracks 2 non-hovered pothole hits');
+  assert.equal(
+    receipt.damageDeductible,
+    Number((receipt.collisionCount * 1.25 + receipt.potholeHits * 0.50).toFixed(2)),
+    'Charges $1.25 per collision and $0.50 per pothole hit'
+  );
   assert.ok(receipt.algorithmFee > 0 && receipt.bagDepreciation > 0 && receipt.convenienceFee > 0, 'Parody fees itemized');
   assert.ok(receipt.netShiftEarnings > 0 && receipt.netShiftEarnings < receipt.grossTotal);
+
+  // Canceled/ruined-only shift clamps netShiftEarnings at 0
+  const canceledReceipt = FD.Game.buildShiftReceipt(stReroute);
+  assert.equal(canceledReceipt.ruinedOrderFee, 3.50, 'Canceled order also incurs $3.50 fee');
+  assert.equal(canceledReceipt.netShiftEarnings, 0, 'netShiftEarnings clamped at 0');
 
   FD.Game.resetCareer();
   FD.Game.getCareer().rating = 2.05;
