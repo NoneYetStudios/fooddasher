@@ -55,3 +55,9 @@ for f in js/*.js tests/verify.mjs; do node --check "$f"; done
 for f in api/*.php; do php -l "$f"; done
 node tests/verify.mjs
 ```
+
+---
+
+## License
+
+MIT License © 2026 Anthony Moore / None Yet Studios
